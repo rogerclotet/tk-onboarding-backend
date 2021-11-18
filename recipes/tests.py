@@ -161,3 +161,18 @@ class RecipesTestCase(APITestCase):
         self.assertEquals(len(ingredients), 2)
         self.assertEquals(ingredients[0]["name"], "Third ingredient")
         self.assertEquals(ingredients[1]["name"], "Fourth ingredient")
+
+    def test_delete_recipe(self):
+        self.client.force_login(user=self.user)
+
+        recipe = Recipe.objects.create(name="Name", description="Description")
+        for ingredient_name in ["First ingredient", "Second ingredient"]:
+            Ingredient.objects.create(name=ingredient_name, recipe=recipe)
+
+        recipe_id = recipe.id
+        response = self.client.delete(f"/recipes/{recipe_id}/")
+
+        self.assertEquals(response.status_code, 204)
+
+        self.assertEquals(Recipe.objects.filter(id=recipe_id).count(), 0)
+        self.assertEquals(Ingredient.objects.filter(recipe_id=recipe_id).count(), 0)
