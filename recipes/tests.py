@@ -90,7 +90,7 @@ class RecipesTestCase(APITestCase):
             recipes[1]["ingredients"][2]["name"], "Second recipe ingredient 3"
         )
 
-    def test_recipe_creation(self):
+    def test_recipe_create(self):
         self.client.force_login(user=self.user)
 
         response = self.client.post(
@@ -116,6 +116,48 @@ class RecipesTestCase(APITestCase):
         self.assertEquals(new_recipe.name, "New recipe")
         self.assertEquals(new_recipe.description, "New description")
         ingredients = new_recipe.ingredients.values()
-        self.assertEquals(ingredients.count(), 2)
+        self.assertEquals(len(ingredients), 2)
         self.assertEquals(ingredients[0]["name"], "First ingredient")
         self.assertEquals(ingredients[1]["name"], "Second ingredient")
+
+    def test_recipe_update(self):
+        self.client.force_login(user=self.user)
+
+        recipe = Recipe.objects.create(
+            name="Initial name", description="Initial description"
+        )
+        for ingredient_name in ["First ingredient", "Second ingredient"]:
+            Ingredient.objects.create(name=ingredient_name, recipe=recipe)
+
+        response = self.client.patch(
+            f"/recipes/{recipe.id}/", {"name": "Edited name"}, format="json"
+        )
+        self.assertEquals(response.status_code, 200)
+        updated_recipe = Recipe.objects.get(id=recipe.id)
+        self.assertEquals(updated_recipe.name, "Edited name")
+
+        self.client.patch(
+            f"/recipes/{recipe.id}/",
+            {"description": "Edited description"},
+            format="json",
+        )
+        self.assertEquals(response.status_code, 200)
+        updated_recipe = Recipe.objects.get(id=recipe.id)
+        self.assertEquals(updated_recipe.description, "Edited description")
+
+        self.client.patch(
+            f"/recipes/{recipe.id}/",
+            {
+                "ingredients": [
+                    {"name": "Third ingredient"},
+                    {"name": "Fourth ingredient"},
+                ]
+            },
+            format="json",
+        )
+        self.assertEquals(response.status_code, 200)
+        updated_recipe = Recipe.objects.get(id=recipe.id)
+        ingredients = updated_recipe.ingredients.values()
+        self.assertEquals(len(ingredients), 2)
+        self.assertEquals(ingredients[0]["name"], "Third ingredient")
+        self.assertEquals(ingredients[1]["name"], "Fourth ingredient")
